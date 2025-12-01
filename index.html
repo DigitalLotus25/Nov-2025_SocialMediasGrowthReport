@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lotus Hyundai | Social Command Center</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;600;800&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --hyundai-dark: #002c5f;
+            --hyundai-blue: #00aad2;
+            --hyundai-accent: #007fa3;
+            --bg-dark: #0a0e17;
+            --card-bg: #131b2c;
+            --text-main: #ffffff;
+            --text-muted: #8b9bb4;
+            --success: #00d26a;
+            --warning: #f5a623;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            padding-bottom: 50px;
+        }
+
+        /* --- LOADER --- */
+        #loader {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--hyundai-dark);
+            z-index: 9999;
+            display: flex;
+            justify-content: center; align-items: center; flex-direction: column;
+            transition: opacity 0.6s ease-out;
+        }
+        .spinner {
+            width: 50px; height: 50px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top-color: var(--hyundai-blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 15px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* --- LAYOUT --- */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.8s ease-out;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-top: 20px;
+        }
+        h1 {
+            font-family: 'Exo 2', sans-serif;
+            font-weight: 800;
+            font-size: 2.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: linear-gradient(to right, #fff, var(--hyundai-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            color: var(--text-muted);
+            letter-spacing: 1px;
+            margin-top: 5px;
+        }
+
+        /* --- PLATFORM GRID --- */
+        .platform-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+        }
+
+        .platform-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: 0 15px 35px -10px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+        
+        .platform-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0, 170, 210, 0.3);
+            box-shadow: 0 20px 40px -10px rgba(0, 170, 210, 0.1);
+        }
+
+        /* Card Header */
+        .p-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .p-name {
+            font-family: 'Exo 2', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .p-badge {
+            background: rgba(255,255,255,0.05);
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Metrics Section */
+        .metrics-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .metric-col {
+            flex: 1;
+            background: rgba(0, 44, 95, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Chart Styling (Donut) */
+        .chart-wrapper {
+            position: relative;
+            height: 120px;
+            width: 120px;
+            margin-bottom: 15px;
+        }
+
+        .chart-label-center {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-family: 'Exo 2', sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        .chart-label-center span {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        /* Data Details */
+        .data-details {
+            width: 100%;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            border-bottom: 1px dashed rgba(255,255,255,0.1);
+            padding-bottom: 4px;
+        }
+        .data-row:last-child { border: none; }
+        
+        .lbl { color: var(--text-muted); font-size: 0.8rem; }
+        .val { font-weight: 600; color: #fff; }
+        .val.target { color: var(--hyundai-blue); }
+
+        .status-pill {
+            margin-top: 10px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        /* --- NEW FOLLOWERS SECTION STYLING (LinkedIn) --- */
+        .followers-section {
+            grid-column: span 2; /* Make it span the full width of the card */
+            background: rgba(0, 44, 95, 0.4);
+            border-radius: 15px;
+            padding: 20px 30px;
+            margin-top: 20px;
+            border: 1px solid rgba(0, 170, 210, 0.2);
+        }
+        .f-header {
+            font-family: 'Exo 2', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--hyundai-blue);
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .f-growth {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: var(--success);
+            text-shadow: 0 0 10px rgba(0, 210, 106, 0.4);
+        }
+        .f-details {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .f-details span {
+            font-weight: 600;
+            color: #fff;
+        }
+
+        /* Progress Bar Animation */
+        .progress-container {
+            height: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--hyundai-blue), var(--success));
+            border-radius: 5px;
+            transition: width 1.5s ease-out; /* Animation */
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .platform-grid { grid-template-columns: 1fr; }
+            .followers-section { grid-column: span 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loader">
+        <div class="spinner"></div>
+        <div style="font-family:'Exo 2'; letter-spacing:2px;">LOADING METRICS</div>
+    </div>
+
+    <div class="container" id="mainContent">
+        <header>
+            <div class="subtitle">LOTUS HYUNDAI - COIMBATORE</div>
+            <h1>Target vs Achieved</h1>
+        </header>
+
+        <div class="platform-grid" id="grid">
+            </div>
+    </div>
+
+    <script>
+        // --- DATA CONFIGURATION ---
+        const platforms = [
+            {
+                name: "Instagram",
+                icon: "fab fa-instagram",
+                color: "#E1306C",
+                followers: 10687,
+                views: { target: 1500000, actual: 1124319, pct: 74.9 },
+                likes: { target: 15000, actual: 28452, pct: 189.6 }
+            },
+            {
+                name: "Facebook",
+                icon: "fab fa-facebook-f",
+                color: "#1877F2",
+                followers: 2625,
+                views: { target: 500000, actual: 719671, pct: 149.5 },
+                likes: { target: 4000, actual: 4309, pct: 112 }
+            },
+            {
+                name: "LinkedIn",
+                icon: "fab fa-linkedin-in",
+                color: "#0077B5",
+                followers: 231, // New current follower count
+                follower_start: 41, // New start count for growth calculation
+                follower_target: 250, // Target for November Growth
+                views: { target: 1000, actual: 3197, pct: 319.7 },
+                likes: { target: 100, actual: 226, pct: 226 }
+            },
+            {
+                name: "X (Twitter)",
+                icon: "fab fa-x-twitter",
+                color: "#fff",
+                followers: 13,
+                views: { target: 100, actual: 847, pct: 847 },
+                likes: { target: 20, actual: 100, pct: 500 }
+            }
+        ];
+
+        // Format numbers (e.g. 1,500,000 -> 1.5M)
+        function formatNumber(num) {
+            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+            if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+            return num;
+        }
+
+        function getStatus(pct) {
+            if(pct >= 100) return `<span class="status-pill" style="background: rgba(0, 210, 106, 0.2); color: #00d26a;">TARGET SMASHED</span>`;
+            return `<span class="status-pill" style="background: rgba(245, 166, 35, 0.2); color: #f5a623;">IN PROGRESS</span>`;
+        }
+
+        // --- Render Cards ---
+        const grid = document.getElementById('grid');
+
+        platforms.forEach((p, index) => {
+            const card = document.createElement('div');
+            card.className = 'platform-card';
+            
+            // LinkedIn Card requires extra follower section
+            let followerSection = '';
+            if (p.name === 'LinkedIn') {
+                const growth = p.followers - p.follower_start;
+                const totalTargetRange = p.follower_target - p.follower_start;
+                const achievement = p.followers - p.follower_start;
+                const progressPct = (achievement / totalTargetRange) * 100;
+
+                followerSection = `
+                    <div class="followers-section" id="linkedin-followers">
+                        <div class="f-header">
+                            🚀 LinkedIn Follower Growth (Nov 2025)
+                            <span class="f-growth">+${growth}</span>
+                        </div>
+                        <div class="f-details">
+                            <i class="fas fa-chart-line" style="margin-right: 5px; color: var(--hyundai-blue);"></i>
+                            Progress towards ${p.follower_target} target: 
+                        </div>
+                        <div class="progress-container">
+                            <div class="progress-bar" id="linkedin-progress" data-progress="${Math.min(100, progressPct.toFixed(0))}"></div>
+                        </div>
+                         <div class="f-details" style="margin-top: 5px;">
+                            <span>Start: ${p.follower_start}</span>
+                            <span>Current: ${p.followers}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            card.innerHTML = `
+                <div class="p-header">
+                    <div class="p-name">
+                        <i class="${p.icon}" style="color: ${p.color}; font-size: 1.8rem;"></i>
+                        ${p.name}
+                    </div>
+                    <div class="p-badge">Followers: ${p.followers.toLocaleString()}</div>
+                </div>
+
+                <div class="metrics-row">
+                    <div class="metric-col">
+                        <div style="margin-bottom:10px; font-weight:600; color:var(--hyundai-blue)">VIEWS</div>
+                        <div class="chart-wrapper">
+                            <canvas id="chart-views-${index}"></canvas>
+                            <div class="chart-label-center">
+                                ${p.views.pct}%
+                                <span>Achieved</span>
+                            </div>
+                        </div>
+                        <div class="data-details">
+                            <div class="data-row">
+                                <span class="lbl">Target</span>
+                                <span class="val target">${formatNumber(p.views.target)}</span>
+                            </div>
+                            <div class="data-row">
+                                <span class="lbl">Actual</span>
+                                <span class="val">${formatNumber(p.views.actual)}</span>
+                            </div>
+                        </div>
+                        ${getStatus(p.views.pct)}
+                    </div>
+
+                    <div class="metric-col">
+                        <div style="margin-bottom:10px; font-weight:600; color:#fff">LIKES</div>
+                        <div class="chart-wrapper">
+                            <canvas id="chart-likes-${index}"></canvas>
+                            <div class="chart-label-center">
+                                ${p.likes.pct}%
+                                <span>Achieved</span>
+                            </div>
+                        </div>
+                        <div class="data-details">
+                            <div class="data-row">
+                                <span class="lbl">Target</span>
+                                <span class="val target">${formatNumber(p.likes.target)}</span>
+                            </div>
+                            <div class="data-row">
+                                <span class="lbl">Actual</span>
+                                <span class="val">${formatNumber(p.likes.actual)}</span>
+                            </div>
+                        </div>
+                        ${getStatus(p.likes.pct)}
+                    </div>
+                </div>
+                ${followerSection} `;
+            grid.appendChild(card);
+        });
+
+        // --- Chart & Animation Logic ---
+        
+        // Initialize Charts and Animations
+        window.onload = function() {
+            setTimeout(() => {
+                document.getElementById('loader').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('loader').style.display = 'none';
+                    document.getElementById('mainContent').style.opacity = '1';
+                    document.getElementById('mainContent').style.transform = 'translateY(0)';
+                    renderCharts();
+                    animateFollowerGrowth(); // Trigger the new animation
+                }, 600);
+            }, 1000);
+        };
+
+        function renderCharts() {
+            platforms.forEach((p, index) => {
+                createDoughnut(`chart-views-${index}`, p.views.pct, '#00aad2');
+                createDoughnut(`chart-likes-${index}`, p.likes.pct, '#ffffff');
+            });
+        }
+
+        function createDoughnut(id, pct, color) {
+            const ctx = document.getElementById(id).getContext('2d');
+            
+            // Cap visual at 100% for the ring
+            const visualPct = pct > 100 ? 100 : pct;
+            const remaining = 100 - visualPct;
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Achieved', 'Remaining'],
+                    datasets: [{
+                        data: [visualPct, remaining],
+                        backgroundColor: [color, 'rgba(255,255,255,0.05)'],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    cutout: '80%',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { animateScale: true, animateRotate: true, duration: 2000 },
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } }
+                }
+            });
+        }
+        
+        // New Animation Function
+        function animateFollowerGrowth() {
+            const progressBar = document.getElementById('linkedin-progress');
+            if (progressBar) {
+                const targetPct = progressBar.getAttribute('data-progress');
+                // The CSS transition handles the smooth animation
+                progressBar.style.width = targetPct + '%'; 
+            }
+        }
+    </script>
+</body>
+</html>
